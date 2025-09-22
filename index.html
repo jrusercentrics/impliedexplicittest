@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cookiebot Geo Test - Debug</title>
+  <title>Cookiebot Geo Test - Single CBID</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Cookiebot CMP script -->
@@ -12,58 +12,27 @@
     data-cbid="e2769309-3672-42d4-bc3f-d56333e6a880"
     data-blockingmode="auto" 
     type="text/javascript"
-    data-georegions="{'region':'US-06','cbid':'cfbb8be3-724d-4eaa-b02b-2be5a68ed1fe'}"
   ></script>
 
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
-    #debug { margin-top: 2rem; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
-    pre { background: #eee; padding: 0.5rem; }
+    .spacer { height: 2000px; } /* force scroll */
   </style>
 </head>
 <body>
-  <h1>Cookiebot Geo Test Page - Debug Mode</h1>
-  <p>This page is configured to test Cookiebot CMP in both GDPR (EU) and CCPA/CPRA (US-06) modes.</p>
+  <h1>Cookiebot Geo Test Page</h1>
+  <p>This page uses a single CBID with regex to apply Explicit (EU) or Implicit (Non-EU) consent.</p>
 
-  <!-- Required link for CCPA/CPRA -->
-  <p>
-    <a onclick="window.Cookiebot.show()" href="#">
-      Do not sell or share my personal information
-    </a>
-  </p>
-
-  <div id="debug">
-    <h2>Debug Info</h2>
-    <p><strong>Country:</strong> <span id="country">loading…</span></p>
-    <p><strong>Consent Method:</strong> <span id="method">loading…</span></p>
-    <p><strong>GPC Signal:</strong> <span id="gpc">loading…</span></p>
-    <p><strong>Consent Object:</strong></p>
-    <pre id="consent">loading…</pre>
-  </div>
+  <!-- Force page to have scroll -->
+  <div class="spacer"></div>
 
   <script>
-    function updateDebug() {
-      if (window.Cookiebot) {
-        document.getElementById("country").textContent = Cookiebot.userCountry || "N/A";
-        document.getElementById("method").textContent = Cookiebot.consent?.method || "N/A";
-        document.getElementById("consent").textContent = JSON.stringify(Cookiebot.consent, null, 2);
-        document.getElementById("gpc").textContent = navigator.globalPrivacyControl ? "Enabled" : "Disabled";
-        console.log("Country:", Cookiebot.userCountry);
-        console.log("Consent:", Cookiebot.consent);
-        console.log("GPC:", navigator.globalPrivacyControl);
-      }
-    }
-
-    // Always fire when consent is ready (GDPR + CCPA)
-    window.addEventListener('CookiebotOnConsentReady', updateDebug);
-
-    // Fire when consent changes
-    window.addEventListener('CookieConsentDeclaration', updateDebug);
-
-    // Adjust consent method depending on geolocation
     window.addEventListener('CookiebotOnDialogDisplay', function () {
+      // Regex for EU/EEA countries
       const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
       const country = (Cookiebot.userCountry || "").toUpperCase();
+
+      console.log("DEBUG - Country detected:", country);
 
       if (euRegex.test(country)) {
         // EU → Explicit consent required
@@ -74,21 +43,12 @@
         // Non-EU → Implicit consent allowed
         Cookiebot.dialog.consentLevel = 'implied';
         Cookiebot.dialog.setOnscrollEvent();
-        console.log("DEBUG - Non-EU detected → Implicit consent on scroll/click");
+        console.log("DEBUG - Non-EU detected → Implicit consent on scroll");
 
-        // Log when user scrolls
+        // Debug when scroll actually happens
         document.addEventListener("scroll", () => {
           console.log("DEBUG - User scrolled → Implicit consent given");
-          updateDebug();
         }, { once: true });
-
-        // Log when user clicks accept button
-        document.addEventListener("click", (e) => {
-          if (e.target && e.target.matches(".CookieConsentButton, .CookieConsentOK, button")) {
-            console.log("DEBUG - User clicked accept → Implicit consent given");
-            updateDebug();
-          }
-        });
       }
     });
   </script>
