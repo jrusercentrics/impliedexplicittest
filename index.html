@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GDPR Test Debug</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Cookiebot CMP script -->
+  <script
+    id="Cookiebot"
+    src="https://consent.cookiebot.com/uc.js"
+    data-cbid="e2769309-3672-42d4-bc3f-d56333e6a880"
+    data-blockingmode="auto" 
+    type="text/javascript"
+  ></script>
+
+  <!-- Script de geolocalização: EU = explicit, fora = implicit -->
+  <script type="text/javascript">
+    window.addEventListener('CookiebotOnDialogDisplay', function () {
+      // Lista de países da UE/EEE
+      const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
+      const country = (Cookiebot.userCountry || "").toUpperCase();
+
+      console.log("DEBUG - Country:", country);
+
+      if (euRegex.test(country)) {
+        // Dentro da UE → EXPLICIT
+        Cookiebot.dialog.consentLevel = 'strict';
+        Cookiebot.dialog.detachOnscrollEvent();
+        console.log("DEBUG - EU detected → Explicit consent enforced");
+      } else {
+        // Fora da UE → IMPLICIT
+        Cookiebot.dialog.consentLevel = 'implied';
+        Cookiebot.dialog.setOnscrollEvent();
+        console.log("DEBUG - Non-EU detected → Implicit consent on scroll");
+      }
+    });
+  </script>
+</head>
+<body>
+  <h1>Geo Test Page - Debug</h1>
+  <p>Banner should behave differently depending on country.</p>
+</body>
+</html>
