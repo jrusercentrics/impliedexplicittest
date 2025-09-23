@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cookiebot Geo Test - Single CBID</title>
+  <title>Cookiebot Geo Test - Scroll Debug</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Cookiebot CMP script -->
@@ -21,14 +21,13 @@
 </head>
 <body>
   <h1>Cookiebot Geo Test Page</h1>
-  <p>This page uses a single CBID with regex to apply Explicit (EU) or Implicit (Non-EU) consent.</p>
+  <p>Scroll down to test implicit consent for non-EU users.</p>
 
   <!-- Force page to have scroll -->
   <div class="spacer"></div>
 
   <script>
     window.addEventListener('CookiebotOnDialogDisplay', function () {
-      // Regex for EU/EEA countries
       const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
       const country = (Cookiebot.userCountry || "").toUpperCase();
 
@@ -43,12 +42,12 @@
         // Non-EU → Implicit consent allowed
         Cookiebot.dialog.consentLevel = 'implied';
         Cookiebot.dialog.setOnscrollEvent();
-        console.log("DEBUG - Non-EU detected → Implicit consent on scroll");
+        console.log("DEBUG - Non-EU detected → Scroll listener active");
 
-        // Debug when scroll actually happens
+        // Log every time user scrolls
         document.addEventListener("scroll", () => {
-          console.log("DEBUG - User scrolled → Implicit consent given");
-        }, { once: true });
+          console.log("DEBUG - Scroll event detected");
+        });
       }
     });
   </script>
