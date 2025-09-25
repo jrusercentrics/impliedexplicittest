@@ -49,7 +49,7 @@
       updateCountry();
 
       const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
-      const excludedCountries = /US|BR|CA/;
+      const excludedCountries = /BR|CA/;
       const country = (Cookiebot.userCountry || "").toUpperCase();
 
       if (excludedCountries.test(country)) {
