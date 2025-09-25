@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cookiebot Geo Test - Full Consent with Exceptions</title>
+  <title>Cookiebot Geo Test - Full Consent with Scroll/Click</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Cookiebot CMP script -->
@@ -23,7 +23,7 @@
 </head>
 <body>
   <h1>Cookiebot Geo Test Page</h1>
-  <p>Scroll or click anywhere outside EU → banner closes and full consent is applied.</p>
+  <p>Outside EU: scroll or click → banner closes + full consent applied.</p>
 
   <div id="debug">
     <h2>Debug Info</h2>
@@ -46,7 +46,7 @@
       }
     }
 
-    // Update debug info when consent changes
+    // Always update debug when consent changes
     window.addEventListener("CookieConsentDeclaration", updateDebug);
 
     window.addEventListener("CookiebotOnDialogDisplay", function () {
@@ -61,7 +61,7 @@
       }
 
       if (euRegex.test(country)) {
-        // EU → explicit consent
+        // EU → explicit consent only
         Cookiebot.dialog.consentLevel = "strict";
         Cookiebot.dialog.detachOnscrollEvent();
         console.log("EU detected → explicit consent required");
@@ -71,19 +71,25 @@
         Cookiebot.dialog.setOnscrollEvent();
         console.log("Non-EU detected → implicit consent active");
 
-        // After banner closes by scroll/click, force all categories true and close banner
-        window.addEventListener("CookieConsentDeclaration", function () {
-          if (Cookiebot.consent?.method === "implied") {
-            console.log("Implicit consent triggered → forcing all categories true and closing banner");
-            Cookiebot.submitCustomConsent(true, true, true, true); // set all categories to true
-            Cookiebot.dialog.submitConsent(); // close the banner if still visible
-            updateDebug();
-          }
+        // Listen for first scroll
+        document.addEventListener("scroll", () => {
+          console.log("User scrolled → forcing full consent & closing banner");
+          Cookiebot.submitCustomConsent(true, true, true, true); // mark all categories true
+          Cookiebot.dialog.submitConsent(); // close the banner
+          updateDebug();
+        }, { once: true });
+
+        // Listen for first click
+        document.addEventListener("click", () => {
+          console.log("User clicked → forcing full consent & closing banner");
+          Cookiebot.submitCustomConsent(true, true, true, true);
+          Cookiebot.dialog.submitConsent();
+          updateDebug();
         }, { once: true });
       }
     });
 
-    // Initial debug update
+    // Initial debug
     window.addEventListener("CookiebotOnConsentReady", updateDebug);
   </script>
 </body>
