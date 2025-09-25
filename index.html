@@ -11,9 +11,10 @@
 
   function forceFullConsent(reason) {
     console.log(`User ${reason} → forcing full consent & closing banner`);
-    Cookiebot.submitCustomConsent(true, true, true, true); // aceitar tudo
+     // aceitar tudo
     if (Cookiebot.dialog && Cookiebot.dialog.isVisible) {
       Cookiebot.dialog.submitConsent(); // fechar o banner
+      Cookiebot.submitCustomConsent(true, true, true, true);
     }
     updateDebug();
   }
