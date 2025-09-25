@@ -18,16 +18,19 @@
     body { font-family: Arial, sans-serif; margin: 2rem; }
     .spacer { height: 2000px; } /* Force scroll */
     #debug { margin-top: 2rem; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
+    pre { background: #eee; padding: .5rem; }
   </style>
 </head>
 <body>
   <h1>Cookiebot Geo Test Page</h1>
-  <p>Scroll or click to test implicit consent (outside EU).</p>
+  <p>EU → explicit banner. Outside EU → scroll or click = implicit consent.</p>
 
   <div id="debug">
     <h2>Debug Info</h2>
     <p><strong>Country:</strong> <span id="country">loading…</span></p>
     <p><strong>Status:</strong> <span id="status">waiting…</span></p>
+    <p><strong>Consent:</strong></p>
+    <pre id="consent">loading…</pre>
   </div>
 
   <div class="spacer"></div>
@@ -38,62 +41,60 @@
       console.log("DEBUG:", msg);
     }
 
-    function updateCountry() {
+    function updateConsent() {
       if (window.Cookiebot) {
         document.getElementById("country").textContent = Cookiebot.userCountry || "N/A";
+        document.getElementById("consent").textContent = JSON.stringify(Cookiebot.consent, null, 2);
       }
     }
 
-    // Main logic when the banner/dialog is displayed
+    // Handle dialog display (banner shown)
     window.addEventListener('CookiebotOnDialogDisplay', function () {
-      updateCountry();
+      updateConsent();
 
       const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
-      const excludedCountries = /BR|CA/;
+      const excludedCountries = /US|BR|CA/;
       const country = (Cookiebot.userCountry || "").toUpperCase();
 
       if (excludedCountries.test(country)) {
-        setStatus("Excluded country detected (" + country + ") → No implicit/explicit override");
+        setStatus("Excluded country detected (" + country + ") → No override applied");
         return;
       }
 
       if (euRegex.test(country)) {
-        // EU → Explicit consent required
+        // EU → Explicit
         Cookiebot.dialog.consentLevel = 'strict';
         Cookiebot.dialog.detachOnscrollEvent();
-        setStatus("EU detected → Explicit consent required (scroll disabled)");
+        setStatus("EU detected → Explicit consent required");
       } else {
-        // Non-EU → Implicit consent allowed
+        // Non-EU → Implicit
         Cookiebot.dialog.consentLevel = 'implied';
         Cookiebot.dialog.setOnscrollEvent();
         setStatus("Non-EU detected → Scroll/click listener active");
 
         // Force full consent on first scroll
         window.addEventListener("scroll", function () {
-          if (!Cookiebot.consent || Cookiebot.consent.method !== "implied") {
-            setStatus("User scrolled → Forcing implicit consent");
-            Cookiebot.submitCustomConsent(true, true, true, true);
-          }
+          setStatus("User scrolled → Forcing implicit consent");
+          Cookiebot.submitCustomConsent(true, true, true, true);
+          updateConsent();
         }, { once: true });
 
         // Force full consent on first click
-        window.addEventListener("click", function () {
-          if (!Cookiebot.consent || Cookiebot.consent.method !== "implied") {
-            setStatus("User clicked → Forcing implicit consent");
-            Cookiebot.submitCustomConsent(true, true, true, true);
-          }
+        window.addEventListener("click", function (e) {
+          if (e.target.closest("#CybotCookiebotDialog")) return; // ignore clicks inside banner
+          setStatus("User clicked page → Forcing implicit consent");
+          Cookiebot.submitCustomConsent(true, true, true, true);
+          updateConsent();
         }, { once: true });
       }
     });
 
-    // Debug: log consent updates
-    window.addEventListener("CookieConsentDeclaration", function () {
-      console.log("Consent updated:", Cookiebot.consent);
-    });
+    // Log consent updates
+    window.addEventListener("CookieConsentDeclaration", updateConsent);
 
-    // Fallback: try to show country even if no dialog is displayed
+    // Fallback for initial load
     window.addEventListener("load", function () {
-      setTimeout(updateCountry, 2000);
+      setTimeout(updateConsent, 2000);
     });
   </script>
 </body>
