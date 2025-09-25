@@ -1,36 +1,93 @@
-<script type="text/javascript">
-  window.addEventListener('CookiebotOnDialogDisplay', function () {
-    const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
-    const country = (Cookiebot.userCountry || "").toUpperCase();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Cookiebot Geo Test - Full Consent on Scroll/Click</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    if (euRegex.test(country)) {
-      // EU → explicit consent only
-      Cookiebot.dialog.consentLevel = 'strict';
-      Cookiebot.dialog.detachOnscrollEvent();
-      console.log("EU detected → Explicit consent required");
-    } else {
-      // Non-EU → implicit consent allowed
-      Cookiebot.dialog.consentLevel = 'implied';
-      Cookiebot.dialog.setOnscrollEvent();
-      console.log("Non-EU detected → Implicit consent active");
+  <!-- Cookiebot CMP script -->
+  <script
+    id="Cookiebot"
+    src="https://consent.cookiebot.com/uc.js"
+    data-cbid="e2769309-3672-42d4-bc3f-d56333e6a880"
+    data-blockingmode="auto" 
+    type="text/javascript"
+  ></script>
 
-      // Helper to apply full consent + close banner
-      function fullConsent(reason) {
-        console.log(`User ${reason} → forcing full consent & closing banner`);
-        Cookiebot.submitCustomConsent(true, true, true, true);
-        if (Cookiebot.dialog.isVisible) {
-          Cookiebot.dialog.submitConsent();
-        }
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    #debug { margin-top: 2rem; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
+    pre { background: #eee; padding: 0.5rem; }
+    .spacer { height: 2000px; } /* force scroll to test implicit consent */
+  </style>
+</head>
+<body>
+  <h1>Cookiebot Geo Test Page</h1>
+  <p>Scroll or click anywhere outside the EU to trigger implicit consent.</p>
+
+  <div id="debug">
+    <h2>Debug Info</h2>
+    <p><strong>Country:</strong> <span id="country">loading…</span></p>
+    <p><strong>Consent Method:</strong> <span id="method">waiting…</span></p>
+    <p><strong>Consent Object:</strong></p>
+    <pre id="consent">waiting…</pre>
+  </div>
+
+  <!-- Spacer to make scroll possible -->
+  <div class="spacer"></div>
+
+  <script>
+    // Helper function to update debug info on the page
+    function updateDebug() {
+      if (window.Cookiebot) {
+        document.getElementById("country").textContent = Cookiebot.userCountry || "N/A";
+        document.getElementById("method").textContent = Cookiebot.consent?.method || "N/A";
+        document.getElementById("consent").textContent = JSON.stringify(Cookiebot.consent, null, 2);
+        console.log("Country:", Cookiebot.userCountry);
+        console.log("Consent:", Cookiebot.consent);
       }
-
-      // On first scroll or click, force consent AND close banner
-      window.addEventListener("scroll", () => fullConsent("scrolled"), { once: true });
-      window.addEventListener("click", () => fullConsent("clicked"), { once: true });
     }
-  });
 
-  // Debug log when consent is updated
-  window.addEventListener("CookieConsentDeclaration", function () {
-    console.log("Consent updated:", Cookiebot.consent);
-  });
-</script>
+    // Always update when consent is ready
+    window.addEventListener('CookiebotOnConsentReady', updateDebug);
+
+    // Update when consent changes
+    window.addEventListener('CookieConsentDeclaration', updateDebug);
+
+    // Main logic: EU = explicit, Non-EU = implicit
+    window.addEventListener('CookiebotOnDialogDisplay', function () {
+      const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
+      const country = (Cookiebot.userCountry || "").toUpperCase();
+      document.getElementById("country").textContent = country;
+
+      if (euRegex.test(country)) {
+        // EU → Explicit consent required
+        Cookiebot.dialog.consentLevel = 'strict';
+        Cookiebot.dialog.detachOnscrollEvent();
+        console.log("EU detected → Explicit consent required");
+      } else {
+        // Non-EU → Implicit consent allowed
+        Cookiebot.dialog.consentLevel = 'implied';
+        Cookiebot.dialog.setOnscrollEvent();
+        console.log("Non-EU detected → Implicit consent active");
+
+        // Helper to force full consent + close the banner
+        function forceFullConsent(reason) {
+          console.log(`User ${reason} → forcing full consent & closing banner`);
+          Cookiebot.submitCustomConsent(true, true, true, true); // set all categories true
+          if (Cookiebot.dialog.isVisible) {
+            Cookiebot.dialog.submitConsent(); // close the banner
+          }
+          updateDebug();
+        }
+
+        // Apply on first scroll
+        window.addEventListener("scroll", () => forceFullConsent("scrolled"), { once: true });
+
+        // Apply on first click
+        window.addEventListener("click", () => forceFullConsent("clicked"), { once: true });
+      }
+    });
+  </script>
+</body>
+</html>
