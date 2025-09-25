@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cookiebot Geo Test - Simulated Accept</title>
+  <title>Cookiebot Geo Test - Simulated Accept (Full Debug)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Cookiebot CMP script -->
@@ -10,7 +10,7 @@
     id="Cookiebot"
     src="https://consent.cookiebot.com/uc.js"
     data-cbid="e2769309-3672-42d4-bc3f-d56333e6a880"
-    data-blockingmode="auto" 
+    data-blockingmode="auto"
     type="text/javascript"
   ></script>
 
@@ -36,23 +36,27 @@
   <div class="spacer"></div>
 
   <script>
+    function logDebug(msg, obj) {
+      console.log("DEBUG:", msg, obj || "");
+      document.getElementById("status").textContent = msg;
+    }
+
     function updateDebug() {
       if (window.Cookiebot) {
         document.getElementById("country").textContent = Cookiebot.userCountry || "N/A";
-        document.getElementById("status").textContent = Cookiebot.consent?.method || "N/A";
         document.getElementById("consent").textContent = JSON.stringify(Cookiebot.consent, null, 2);
-        console.log("DEBUG - Country:", Cookiebot.userCountry);
-        console.log("DEBUG - Consent:", Cookiebot.consent);
+        logDebug("Consent updated", Cookiebot.consent);
       }
     }
 
     function simulateAccept(reason) {
-      console.log(`User ${reason} → simulating Accept All button click`);
-      const acceptBtn = document.querySelector("#CookiebotDialogBodyLevelButtonAccept"); 
+      logDebug(`User ${reason} → trying to click Accept All button`);
+      const acceptBtn = document.querySelector("#CybotCookiebotDialogBodyLevelButtonLevelOptinAllowAll");
       if (acceptBtn) {
-        acceptBtn.click(); // simulate real click → closes banner + logs consent
+        logDebug("Accept All button found, simulating click", acceptBtn);
+        acceptBtn.click();
       } else {
-        console.warn("Accept All button not found in DOM");
+        logDebug("Accept All button NOT found in DOM");
       }
       updateDebug();
     }
@@ -65,14 +69,13 @@
       document.getElementById("country").textContent = country;
 
       if (euRegex.test(country)) {
-        console.log("EU detected → explicit consent required");
+        logDebug("EU detected → explicit consent required");
       } else if (!excluded.test(country)) {
-        console.log("Non-EU detected → implicit consent via scroll/click");
-
+        logDebug("Non-EU detected → implicit consent via scroll/click");
         window.addEventListener("scroll", () => simulateAccept("scrolled"), { once: true });
         window.addEventListener("click", () => simulateAccept("clicked"), { once: true });
       } else {
-        console.log("Excluded country → no implicit override");
+        logDebug("Excluded country → no implicit override");
       }
     });
 
