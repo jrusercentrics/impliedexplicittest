@@ -9,7 +9,7 @@
   <script
     id="Cookiebot"
     src="https://consent.cookiebot.com/uc.js"
-    data-cbid="XXXX-XXXX-XXXX-XXXX"
+    data-cbid="e2769309-3672-42d4-bc3f-d56333e6a880"
     data-blockingmode="auto"
     type="text/javascript"
   ></script>
@@ -38,14 +38,20 @@
       console.log("DEBUG:", msg);
     }
 
+    function updateCountry() {
+      if (window.Cookiebot) {
+        document.getElementById("country").textContent = Cookiebot.userCountry || "N/A";
+      }
+    }
+
+    // Main logic when the banner/dialog is displayed
     window.addEventListener('CookiebotOnDialogDisplay', function () {
+      updateCountry();
+
       const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
-      const excludedCountries = /BR|CA/;
+      const excludedCountries = /US|BR|CA/;
       const country = (Cookiebot.userCountry || "").toUpperCase();
 
-      document.getElementById("country").textContent = country;
-
-      // Exclude countries that need separate Domain Group (e.g. CCPA, LGPD, PIPEDA)
       if (excludedCountries.test(country)) {
         setStatus("Excluded country detected (" + country + ") → No implicit/explicit override");
         return;
@@ -83,6 +89,11 @@
     // Debug: log consent updates
     window.addEventListener("CookieConsentDeclaration", function () {
       console.log("Consent updated:", Cookiebot.consent);
+    });
+
+    // Fallback: try to show country even if no dialog is displayed
+    window.addEventListener("load", function () {
+      setTimeout(updateCountry, 2000);
     });
   </script>
 </body>
