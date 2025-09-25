@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cookiebot Geo Test - Full Debug</title>
+  <title>Cookiebot Geo Test - Simulated Accept</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Cookiebot CMP script -->
@@ -46,16 +46,17 @@
       }
     }
 
-    function forceFullConsent(reason) {
-      console.log(`User ${reason} → forcing full consent & closing banner`);
-      Cookiebot.submitCustomConsent(true, true, true, true); // aceitar tudo
-      if (Cookiebot.dialog && Cookiebot.dialog.isVisible) {
-        Cookiebot.dialog.submitConsent(); // fechar banner
+    function simulateAccept(reason) {
+      console.log(`User ${reason} → simulating Accept All button click`);
+      const acceptBtn = document.querySelector("#CookiebotDialogBodyLevelButtonAccept"); 
+      if (acceptBtn) {
+        acceptBtn.click(); // simulate real click → closes banner + logs consent
+      } else {
+        console.warn("Accept All button not found in DOM");
       }
       updateDebug();
     }
 
-    // Main logic
     window.addEventListener("CookiebotOnDialogDisplay", function () {
       const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
       const excluded = /BR|CA/;
@@ -65,19 +66,16 @@
 
       if (euRegex.test(country)) {
         console.log("EU detected → explicit consent required");
-        Cookiebot.dialog.consentLevel = "strict";
       } else if (!excluded.test(country)) {
         console.log("Non-EU detected → implicit consent via scroll/click");
 
-        // scroll ou click → aceita tudo + fecha banner
-        window.addEventListener("scroll", () => forceFullConsent("scrolled"), { once: true });
-        window.addEventListener("click", () => forceFullConsent("clicked"), { once: true });
+        window.addEventListener("scroll", () => simulateAccept("scrolled"), { once: true });
+        window.addEventListener("click", () => simulateAccept("clicked"), { once: true });
       } else {
-        console.log("Excluded country → no implicit/explicit override");
+        console.log("Excluded country → no implicit override");
       }
     });
 
-    // Debug on consent updates
     window.addEventListener("CookieConsentDeclaration", updateDebug);
   </script>
 </body>
