@@ -2,27 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cookiebot Geo Test - Scroll Debug</title>
+  <title>Cookiebot Geo Test - Explicit vs Implicit</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Cookiebot CMP script -->
   <script
     id="Cookiebot"
     src="https://consent.cookiebot.com/uc.js"
-    data-cbid="e2769309-3672-42d4-bc3f-d56333e6a880"
-    data-blockingmode="auto" 
+    data-cbid="XXXX-XXXX-XXXX-XXXX"
+    data-blockingmode="auto"
     type="text/javascript"
   ></script>
 
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
+    .spacer { height: 2000px; } /* Force scroll */
     #debug { margin-top: 2rem; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
-    .spacer { height: 2000px; } /* force scroll */
   </style>
 </head>
 <body>
   <h1>Cookiebot Geo Test Page</h1>
-  <p>Scroll down or accept cookies to trigger debug logs.</p>
+  <p>Scroll or click to test implicit consent (outside EU).</p>
 
   <div id="debug">
     <h2>Debug Info</h2>
@@ -30,7 +30,6 @@
     <p><strong>Status:</strong> <span id="status">waiting…</span></p>
   </div>
 
-  <!-- Force page to have scroll -->
   <div class="spacer"></div>
 
   <script>
@@ -41,9 +40,16 @@
 
     window.addEventListener('CookiebotOnDialogDisplay', function () {
       const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
+      const excludedCountries = /BR|CA/;
       const country = (Cookiebot.userCountry || "").toUpperCase();
 
       document.getElementById("country").textContent = country;
+
+      // Exclude countries that need separate Domain Group (e.g. CCPA, LGPD, PIPEDA)
+      if (excludedCountries.test(country)) {
+        setStatus("Excluded country detected (" + country + ") → No implicit/explicit override");
+        return;
+      }
 
       if (euRegex.test(country)) {
         // EU → Explicit consent required
@@ -54,13 +60,29 @@
         // Non-EU → Implicit consent allowed
         Cookiebot.dialog.consentLevel = 'implied';
         Cookiebot.dialog.setOnscrollEvent();
-        setStatus("Non-EU detected → Scroll listener active");
+        setStatus("Non-EU detected → Scroll/click listener active");
 
-        // Log every time user scrolls
-        document.addEventListener("scroll", () => {
-          setStatus("User scrolled → Implicit consent triggered");
-        });
+        // Force full consent on first scroll
+        window.addEventListener("scroll", function () {
+          if (!Cookiebot.consent || Cookiebot.consent.method !== "implied") {
+            setStatus("User scrolled → Forcing implicit consent");
+            Cookiebot.submitCustomConsent(true, true, true, true);
+          }
+        }, { once: true });
+
+        // Force full consent on first click
+        window.addEventListener("click", function () {
+          if (!Cookiebot.consent || Cookiebot.consent.method !== "implied") {
+            setStatus("User clicked → Forcing implicit consent");
+            Cookiebot.submitCustomConsent(true, true, true, true);
+          }
+        }, { once: true });
       }
+    });
+
+    // Debug: log consent updates
+    window.addEventListener("CookieConsentDeclaration", function () {
+      console.log("Consent updated:", Cookiebot.consent);
     });
   </script>
 </body>
