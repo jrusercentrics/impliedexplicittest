@@ -48,11 +48,9 @@
 
     function forceFullConsent(reason) {
       console.log(`User ${reason} → forcing full consent & closing banner`);
-      Cookiebot.submitCustomConsent(true, true, true, true); 
-      // accept all categories
+      Cookiebot.submitCustomConsent(true, true, true, true); // aceitar tudo
       if (Cookiebot.dialog && Cookiebot.dialog.isVisible) {
-        Cookiebot.dialog.submitConsent(); // close banner
-        Cookiebot.submitCustomConsent(true, true, true, true); 
+        Cookiebot.dialog.submitConsent(); // fechar banner
       }
       updateDebug();
     }
@@ -68,13 +66,10 @@
       if (euRegex.test(country)) {
         console.log("EU detected → explicit consent required");
         Cookiebot.dialog.consentLevel = "strict";
-        Cookiebot.dialog.detachOnscrollEvent();
       } else if (!excluded.test(country)) {
-        console.log("Non-EU detected → implicit consent active");
-        Cookiebot.dialog.consentLevel = "implied";
-        Cookiebot.dialog.setOnscrollEvent();
+        console.log("Non-EU detected → implicit consent via scroll/click");
 
-        // first scroll or click → force full consent & close banner
+        // scroll ou click → aceita tudo + fecha banner
         window.addEventListener("scroll", () => forceFullConsent("scrolled"), { once: true });
         window.addEventListener("click", () => forceFullConsent("clicked"), { once: true });
       } else {
