@@ -47,13 +47,13 @@
     }
 
     function forceFullConsent(reason) {
-      console.log(`User ${reason} → forcing full consent & closing banner`);
-      Cookiebot.submitCustomConsent(true, true, true, true); // accept all categories
-      if (Cookiebot.dialog && Cookiebot.dialog.isVisible) {
-        Cookiebot.dialog.submitConsent(); // close banner
-      }
-      updateDebug();
-    }
+  console.log(`User ${reason} → forcing full consent & closing banner`);
+  Cookiebot.submitCustomConsent(true, true, true, true); // grava consentimento total
+  if (Cookiebot.dialog && Cookiebot.dialog.isVisible) {
+    Cookiebot.dialog.submitConsent(); // força o fecho do banner
+  }
+  updateDebug();
+}
 
     // Main logic
     window.addEventListener("CookiebotOnDialogDisplay", function () {
