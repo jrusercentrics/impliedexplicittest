@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Cookiebot Geo Test - Explicit vs Implicit</title>
+  <title>Cookiebot Geo Test - Hybrid Logic</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Cookiebot CMP script -->
@@ -16,86 +16,78 @@
 
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
-    .spacer { height: 2000px; } /* Force scroll */
     #debug { margin-top: 2rem; padding: 1rem; border: 1px solid #ccc; background: #f9f9f9; }
-    pre { background: #eee; padding: .5rem; }
+    .spacer { height: 2000px; } /* força scroll */
   </style>
 </head>
 <body>
-  <h1>Cookiebot Geo Test Page</h1>
-  <p>EU → explicit banner. Outside EU → scroll or click = implicit consent.</p>
+  <h1>Cookiebot Hybrid Test</h1>
+  <p>Scroll ou clique fora da UE → banner desaparece e todas as categorias ficam aceites.</p>
 
   <div id="debug">
     <h2>Debug Info</h2>
     <p><strong>Country:</strong> <span id="country">loading…</span></p>
     <p><strong>Status:</strong> <span id="status">waiting…</span></p>
-    <p><strong>Consent:</strong></p>
     <pre id="consent">loading…</pre>
   </div>
 
   <div class="spacer"></div>
 
   <script>
-    function setStatus(msg) {
+    function logStatus(msg) {
       document.getElementById("status").textContent = msg;
       console.log("DEBUG:", msg);
     }
 
     function updateConsent() {
-      if (window.Cookiebot) {
-        document.getElementById("country").textContent = Cookiebot.userCountry || "N/A";
-        document.getElementById("consent").textContent = JSON.stringify(Cookiebot.consent, null, 2);
+      if (window.Cookiebot && Cookiebot.consent) {
+        document.getElementById("consent").textContent =
+          JSON.stringify(Cookiebot.consent, null, 2);
       }
     }
 
-    // Handle dialog display (banner shown)
     window.addEventListener('CookiebotOnDialogDisplay', function () {
-      updateConsent();
-
       const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
-      const excludedCountries = /BR|CA/;
+      const excluded = /BR|CA/; // excluídos
       const country = (Cookiebot.userCountry || "").toUpperCase();
 
-      if (excludedCountries.test(country)) {
-        setStatus("Excluded country detected (" + country + ") → No override applied");
-        return;
-      }
+      document.getElementById("country").textContent = country;
 
       if (euRegex.test(country)) {
-        // EU → Explicit
+        // UE → consentimento explícito
         Cookiebot.dialog.consentLevel = 'strict';
         Cookiebot.dialog.detachOnscrollEvent();
-        setStatus("EU detected → Explicit consent required");
+        logStatus("EU detected → Explicit consent required (banner stays until choice)");
+      } else if (excluded.test(country)) {
+        logStatus("Excluded country (" + country + ") → No implicit logic applied");
       } else {
-        // Non-EU → Implicit
+        // Fora da UE → consentimento implícito
         Cookiebot.dialog.consentLevel = 'implied';
         Cookiebot.dialog.setOnscrollEvent();
-        setStatus("Non-EU detected → Scroll/click listener active");
+        logStatus("Non-EU detected → Implicit consent active (scroll/click closes)");
 
-        // Force full consent on first scroll
+        // No primeiro scroll → força full consent
         window.addEventListener("scroll", function () {
-          setStatus("User scrolled → Forcing implicit consent");
-          Cookiebot.submitCustomConsent(true, true, true, true);
-          updateConsent();
+          if (!Cookiebot.consent || Cookiebot.consent.method !== "implied") {
+            Cookiebot.submitCustomConsent(true, true, true, true);
+            logStatus("User scrolled → Full consent forced");
+            updateConsent();
+          }
         }, { once: true });
 
-        // Force full consent on first click
-        window.addEventListener("click", function (e) {
-          if (e.target.closest("#CybotCookiebotDialog")) return; // ignore clicks inside banner
-          setStatus("User clicked page → Forcing implicit consent");
-          Cookiebot.submitCustomConsent(true, true, true, true);
-          updateConsent();
+        // No primeiro clique → força full consent
+        window.addEventListener("click", function () {
+          if (!Cookiebot.consent || Cookiebot.consent.method !== "implied") {
+            Cookiebot.submitCustomConsent(true, true, true, true);
+            logStatus("User clicked → Full consent forced");
+            updateConsent();
+          }
         }, { once: true });
       }
     });
 
-    // Log consent updates
+    // Atualiza debug quando o consent muda
     window.addEventListener("CookieConsentDeclaration", updateConsent);
-
-    // Fallback for initial load
-    window.addEventListener("load", function () {
-      setTimeout(updateConsent, 2000);
-    });
   </script>
 </body>
 </html>
