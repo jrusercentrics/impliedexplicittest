@@ -48,6 +48,7 @@
 
     function forceFullConsent(reason) {
       console.log(`User ${reason} → forcing full consent & closing banner`);
+      Cookiebot.submitCustomConsent(true, true, true, true); 
       // accept all categories
       if (Cookiebot.dialog && Cookiebot.dialog.isVisible) {
         Cookiebot.dialog.submitConsent(); // close banner
