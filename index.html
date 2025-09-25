@@ -35,45 +35,43 @@
 
   <div class="spacer"></div>
 
-  <script>
-    function updateDebug() {
-      if (window.Cookiebot) {
-        document.getElementById("country").textContent = Cookiebot.userCountry || "N/A";
-        document.getElementById("method").textContent = Cookiebot.consent?.method || "N/A";
-        document.getElementById("consent").textContent = JSON.stringify(Cookiebot.consent, null, 2);
-        console.log("Country:", Cookiebot.userCountry);
-        console.log("Consent:", Cookiebot.consent);
-      }
-    }
+  <script type="text/javascript">
+  window.addEventListener('CookiebotOnDialogDisplay', function () {
+    const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
+    const country = (Cookiebot.userCountry || "").toUpperCase();
 
-    window.addEventListener('CookiebotOnConsentReady', updateDebug);
-    window.addEventListener('CookieConsentDeclaration', updateDebug);
+    if (euRegex.test(country)) {
+      // EU → explicit consent
+      Cookiebot.dialog.consentLevel = 'strict';
+      Cookiebot.dialog.detachOnscrollEvent();
+      console.log("EU detected → explicit consent required");
+    } else {
+      // Non-EU → implicit consent
+      Cookiebot.dialog.consentLevel = 'implied';
+      Cookiebot.dialog.setOnscrollEvent();
+      console.log("Non-EU detected → implicit consent active");
 
-    window.addEventListener('CookiebotOnDialogDisplay', function () {
-      const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
-      const country = (Cookiebot.userCountry || "").toUpperCase();
-      document.getElementById("country").textContent = country;
-
-      if (euRegex.test(country)) {
-        Cookiebot.dialog.consentLevel = 'strict';
-        Cookiebot.dialog.detachOnscrollEvent();
-        console.log("EU detected → Explicit consent required");
-      } else {
-        Cookiebot.dialog.consentLevel = 'implied';
-        Cookiebot.dialog.setOnscrollEvent();
-        console.log("Non-EU detected → Implicit consent active");
-
-        // Force full consent at the same time as scroll/click
-        function forceFullConsent(reason) {
-          console.log(`User ${reason} → forcing full consent`);
-          Cookiebot.submitCustomConsent(true, true, true, true);
-          updateDebug();
+      function forceConsent(reason) {
+        console.log(`User ${reason} → closing banner + forcing consent`);
+        // close banner (native)
+        if (Cookiebot.dialog.isVisible) {
+          Cookiebot.dialog.submitConsent();
         }
-
-        window.addEventListener("scroll", () => forceFullConsent("scrolled"), { once: true });
-        window.addEventListener("click", () => forceFullConsent("clicked"), { once: true });
+        // force all categories = true
+        Cookiebot.submitCustomConsent(true, true, true, true);
       }
-    });
-  </script>
+
+      // Hook scroll + click once
+      window.addEventListener("scroll", () => forceConsent("scrolled"), { once: true });
+      window.addEventListener("click", () => forceConsent("clicked"), { once: true });
+    }
+  });
+
+  // Debug updates
+  window.addEventListener("CookieConsentDeclaration", function () {
+    console.log("Consent object:", Cookiebot.consent);
+  });
+</script>
+
 </body>
 </html>
