@@ -35,62 +35,50 @@
 
   <div class="spacer"></div>
 
-  <script>
-    function updateDebug() {
-      if (window.Cookiebot) {
-        document.getElementById("country").textContent = Cookiebot.userCountry || "N/A";
-        document.getElementById("method").textContent = Cookiebot.consent?.method || "N/A";
-        document.getElementById("consent").textContent = JSON.stringify(Cookiebot.consent, null, 2);
-        console.log("Country:", Cookiebot.userCountry);
-        console.log("Consent:", Cookiebot.consent);
-      }
+  <script type="text/javascript">
+  function forceFullConsent(reason) {
+    console.log(`User ${reason} → forcing full consent & closing banner`);
+    Cookiebot.submitCustomConsent(true, true, true, true); // aceitar tudo
+    if (Cookiebot.dialog.isVisible) {
+      Cookiebot.dialog.submitConsent(); // fechar o banner
     }
+  }
 
-    // Always update debug when consent changes
-    window.addEventListener("CookieConsentDeclaration", updateDebug);
+  // Quando o banner abre → aplica lógica EU vs não-EU
+  window.addEventListener("CookiebotOnDialogDisplay", function () {
+    const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
+    const excluded = /US|BR|CA/; // exemplo: excluir países
+    const country = (Cookiebot.userCountry || "").toUpperCase();
 
-    window.addEventListener("CookiebotOnDialogDisplay", function () {
-      const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
-      const excluded = /BR|CA/; // Excluded countries
-      const country = (Cookiebot.userCountry || "").toUpperCase();
-      document.getElementById("country").textContent = country;
+    if (euRegex.test(country)) {
+      console.log("EU detected → explicit consent required");
+      Cookiebot.dialog.consentLevel = "strict";
+      Cookiebot.dialog.detachOnscrollEvent();
+    } else if (!excluded.test(country)) {
+      console.log("Non-EU detected → implicit consent active");
+      Cookiebot.dialog.consentLevel = "implied";
+      Cookiebot.dialog.setOnscrollEvent();
 
-      if (excluded.test(country)) {
-        console.log("Excluded country detected → no implicit logic applied");
-        return;
-      }
+      // Forçar consentimento no primeiro scroll/click
+      window.addEventListener("scroll", () => forceFullConsent("scrolled"), { once: true });
+      window.addEventListener("click", () => forceFullConsent("clicked"), { once: true });
+    } else {
+      console.log("Excluded country → no implicit/explicit override");
+    }
+  });
 
-      if (euRegex.test(country)) {
-        // EU → explicit consent only
-        Cookiebot.dialog.consentLevel = "strict";
-        Cookiebot.dialog.detachOnscrollEvent();
-        console.log("EU detected → explicit consent required");
-      } else {
-        // Non-EU → implicit consent
-        Cookiebot.dialog.consentLevel = "implied";
-        Cookiebot.dialog.setOnscrollEvent();
-        console.log("Non-EU detected → implicit consent active");
+  // Hack: se Cookiebot voltar a mudar o consentimento → forçar novamente fora da EU
+  window.addEventListener("CookieConsentDeclaration", function () {
+    const euRegex = /AT|BE|BG|CY|CZ|DE|DK|EE|ES|FI|FR|GB|GR|HR|HU|IE|IT|LT|LU|LV|MT|NL|PL|PT|RO|SE|SI|SK/;
+    const excluded = /US|BR|CA/;
+    const country = (Cookiebot.userCountry || "").toUpperCase();
 
-        // Listen for first scroll
-        document.addEventListener("scroll", () => {
-          console.log("User scrolled → forcing full consent & closing banner");
-          Cookiebot.submitCustomConsent(true, true, true, true); // mark all categories true
-          Cookiebot.dialog.submitConsent(); // close the banner
-          updateDebug();
-        }, { once: true });
+    if (!euRegex.test(country) && !excluded.test(country)) {
+      console.log("Reapplying full consent outside EU");
+      Cookiebot.submitCustomConsent(true, true, true, true);
+    }
+  });
+</script>
 
-        // Listen for first click
-        document.addEventListener("click", () => {
-          console.log("User clicked → forcing full consent & closing banner");
-          Cookiebot.submitCustomConsent(true, true, true, true);
-          Cookiebot.dialog.submitConsent();
-          updateDebug();
-        }, { once: true });
-      }
-    });
-
-    // Initial debug
-    window.addEventListener("CookiebotOnConsentReady", updateDebug);
-  </script>
 </body>
 </html>
