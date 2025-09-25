@@ -54,7 +54,8 @@
         // Non-EU → Implicit consent allowed
         Cookiebot.dialog.consentLevel = 'implied';
         Cookiebot.dialog.setOnscrollEvent();
-        //Cookiebot.submitCustomConsent(true, true, true, true);
+        Cookiebot.submitCustomConsent(true, true, true, true);
+        Cookiebot.dialog.submitConsent();
         setStatus("Non-EU detected → Scroll listener active");
 
         // Debug on scroll
